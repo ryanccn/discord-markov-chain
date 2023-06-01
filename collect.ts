@@ -36,7 +36,7 @@ const main = async () => {
 
   await channel.send("Started crawling");
 
-  let messages: string[] = [];
+  let messages = new Set<string>();
   let lastMessageId: string | null = null;
 
   let wasInterrupted = false;
@@ -49,7 +49,9 @@ const main = async () => {
       encoding: "utf-8",
     }).then((t) => JSON.parse(t))) as string[];
 
-    messages = fsMessages;
+    fsMessages.forEach((m) => {
+      messages.add(m);
+    });
   } catch {}
 
   try {
@@ -73,20 +75,22 @@ const main = async () => {
       .map((m) => m.content.replaceAll(/\p{Script=Han}/g, ""))
       .filter(Boolean);
 
-    messages = messages.concat(matchingMessages);
+    matchingMessages.forEach((m) => {
+      messages.add(m);
+    });
 
-    if (!messages.length) {
+    if (!thisMessages.size) {
       wasInterrupted = true;
     }
 
     console.log(
-      `Added ${matchingMessages.length} messages to dataset (total ${messages.length})`
+      `Added ${matchingMessages.length} messages to dataset (total ${messages.size})`
     );
   }
 
-  await channel.send(`Ended crawling, ${messages.length} messages saved`);
+  await channel.send(`Ended crawling, ${messages.size} messages saved`);
 
-  await writeFile("messages.json", JSON.stringify(messages));
+  await writeFile("messages.json", JSON.stringify([...messages]));
 
   {
     const oldProgress = await readFile("progress.json", {
