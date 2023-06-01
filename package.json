@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "collect": "tsx collect.ts",
-    "bot": "tsx bot.ts"
+    "bot": "tsx bot.ts",
+    "test": "tsx test.ts"
   },
   "author": "Ryan Cao <hello@ryanccn.dev>",
   "license": "MIT",
