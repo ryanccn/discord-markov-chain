@@ -2,6 +2,7 @@ import "dotenv/config";
 
 import {
   ActivityType,
+  ChannelType,
   Client,
   Collection,
   GatewayIntentBits,
@@ -31,7 +32,7 @@ const main = async () => {
 
   const channel = await client.channels.fetch(process.env.DISCORD_CHANNEL_ID!);
 
-  if (!channel?.isTextBased())
+  if (channel?.type !== ChannelType.GuildText)
     throw new Error("Couldn't find acceptable channel");
 
   await channel.send("Started crawling");

@@ -1,4 +1,17 @@
-import { ActivityType, Client, GatewayIntentBits } from "discord.js";
+import {
+  ActionRowBuilder,
+  ActivityType,
+  ButtonBuilder,
+  ButtonStyle,
+  Client,
+  ComponentType,
+  Events,
+  GatewayIntentBits,
+  REST,
+  RESTGetAPIOAuth2CurrentApplicationResult,
+  Routes,
+  SlashCommandBuilder,
+} from "discord.js";
 import { Markov, MarkovData } from "kurwov";
 import BadWords from "bad-words";
 
@@ -15,18 +28,36 @@ const client = new Client({
   ],
 });
 
+const syncCommands = async () => {
+  const commands = [
+    new SlashCommandBuilder()
+      .setName("ryanism")
+      .setDescription("Generate a Ryanism from the all-powerful Markov chain"),
+  ]
+    .map((command) => command.setDMPermission(false))
+    .map((command) => command.toJSON());
+
+  const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN!);
+
+  const { id: appId } = (await rest.get(
+    Routes.oauth2CurrentApplication()
+  )) as RESTGetAPIOAuth2CurrentApplicationResult;
+
+  await rest.put(Routes.applicationCommands(appId), {
+    body: commands,
+  });
+};
+
 const main = async () => {
+  await syncCommands();
+  console.log("Synced commands");
+
   await client.login(process.env.DISCORD_TOKEN!);
   client.user!.setPresence({
     activities: [{ name: "generating responses", type: ActivityType.Playing }],
   });
 
-  console.log("Logged in to Discord");
-
-  const channel = await client.channels.fetch(process.env.DISCORD_OUTPUT_ID!);
-
-  if (!channel?.isTextBased())
-    throw new Error("Couldn't find acceptable channel");
+  console.log("Connected!");
 
   const messages = await readFile("messages.json", { encoding: "utf-8" }).then(
     (t) => JSON.parse(t) as string[]
@@ -35,19 +66,45 @@ const main = async () => {
   const markovData = new MarkovData(messages);
   const filter = new BadWords({ placeHolder: "\\*" });
 
-  while (true) {
-    const message = filter.clean(Markov.generate({ data: markovData }));
-    if (message.trim().length === 0) continue;
+  client.on(Events.InteractionCreate, async (i) => {
+    if (!i.isChatInputCommand()) return;
+    if (i.commandName === "ryanism") {
+      let message = "";
+      while (!message) {
+        message = filter.clean(Markov.generate({ data: markovData }));
+      }
 
-    console.log(`> ${message}`);
-    await channel.send({ content: message, allowedMentions: { parse: [] } });
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId("delete")
+          .setLabel("Delete")
+          .setStyle(ButtonStyle.Danger)
+      );
 
-    await new Promise<void>((resolve) => {
-      setTimeout(() => {
-        resolve();
-      }, 15_000);
-    });
-  }
+      console.log(`> ${message}`);
+      const reply = await i.reply({
+        content: message,
+        allowedMentions: { parse: [] },
+        components: [row],
+      });
+
+      reply
+        .createMessageComponentCollector({
+          componentType: ComponentType.Button,
+        })
+        .on("collect", async (componentInteraction) => {
+          if (
+            componentInteraction.customId === "delete" &&
+            componentInteraction.user === i.user
+          ) {
+            await reply.delete();
+          }
+        });
+    }
+  });
 };
 
-main();
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
