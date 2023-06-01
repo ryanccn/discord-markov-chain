@@ -70,7 +70,8 @@ const main = async () => {
 
     const matchingMessages = thisMessages
       .filter((m) => m.author.id === process.env.DISCORD_AUTHOR_ID)
-      .map((m) => m.content);
+      .map((m) => m.content.replaceAll(/\p{Script=Han}/g, ""))
+      .filter(Boolean);
 
     messages = messages.concat(matchingMessages);
 
