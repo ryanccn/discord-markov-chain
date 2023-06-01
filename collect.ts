@@ -37,7 +37,7 @@ const main = async () => {
 
   await channel.send("Started crawling");
 
-  let messages = new Set<string>();
+  const messages = new Set<string>();
   let lastMessageId: string | null = null;
 
   let wasInterrupted = false;
@@ -53,7 +53,9 @@ const main = async () => {
     fsMessages.forEach((m) => {
       messages.add(m);
     });
-  } catch {}
+  } catch {
+    console.warn("No messages.json found, starting from scratch");
+  }
 
   try {
     const fsProgress = (await readFile("progress.json", {
@@ -61,7 +63,9 @@ const main = async () => {
     }).then((t) => JSON.parse(t))) as Record<string, string>;
 
     lastMessageId = fsProgress[channel.id] ?? null;
-  } catch {}
+  } catch {
+    console.warn("No progress.json found, starting from scratch");
+  }
 
   while (!wasInterrupted) {
     const thisMessages = (await channel.messages.fetch({

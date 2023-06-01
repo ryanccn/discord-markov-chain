@@ -10,4 +10,4 @@ RUN pnpm install
 
 COPY . .
 
-CMD ["pnpm", "bot"]
+CMD ["pnpm", "run", "bot"]
