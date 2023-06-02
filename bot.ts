@@ -76,6 +76,10 @@ const main = async () => {
 
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
+          .setCustomId("regenerate")
+          .setLabel("Regenerate")
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
           .setCustomId("delete")
           .setLabel("Delete")
           .setStyle(ButtonStyle.Danger)
@@ -93,11 +97,18 @@ const main = async () => {
           componentType: ComponentType.Button,
         })
         .on("collect", async (componentInteraction) => {
-          if (
-            componentInteraction.customId === "delete" &&
-            componentInteraction.user === i.user
-          ) {
+          if (componentInteraction.user !== i.user) return;
+
+          if (componentInteraction.customId === "delete") {
             await reply.delete();
+          } else if (componentInteraction.customId === "regenerate") {
+            let newMessage = "";
+            while (!newMessage) {
+              newMessage = filter.clean(Markov.generate({ data: markovData }));
+            }
+
+            console.log(`> ${newMessage}`);
+            await reply.edit({ content: newMessage });
           }
         });
     }
