@@ -102,7 +102,7 @@ const main = async () => {
           if (componentInteraction.customId === "delete") {
             await reply.delete();
           } else if (componentInteraction.customId === "regenerate") {
-            await i.deferReply();
+            await componentInteraction.deferReply();
 
             let newMessage = "";
             while (!newMessage) {
@@ -111,7 +111,7 @@ const main = async () => {
 
             console.log(`> ${newMessage}`);
             await reply.edit({ content: newMessage });
-            await i.editReply("Regenerated response!");
+            await componentInteraction.editReply("Regenerated response!");
           }
         });
     }
