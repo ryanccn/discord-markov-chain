@@ -4,5 +4,4 @@ node_modules/
 .env.*
 !.env.example
 
-/messages.json
-/progress.json
+/data/

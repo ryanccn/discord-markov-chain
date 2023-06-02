@@ -15,7 +15,8 @@ import {
 import { Markov, MarkovData } from "kurwov";
 import BadWords from "bad-words";
 
-import { readFile } from "fs/promises";
+import { readMessages } from "./lib";
+
 import "dotenv/config";
 
 const client = new Client({
@@ -31,8 +32,14 @@ const client = new Client({
 const syncCommands = async () => {
   const commands = [
     new SlashCommandBuilder()
-      .setName("ryanism")
-      .setDescription("Generate a Ryanism from the all-powerful Markov chain"),
+      .setName("generate")
+      .setDescription("Generate a message from the all-powerful Markov chain")
+      .addUserOption((option) =>
+        option
+          .setName("user")
+          .setDescription("The user to simulate")
+          .setRequired(true)
+      ),
   ]
     .map((command) => command.setDMPermission(false))
     .map((command) => command.toJSON());
@@ -59,16 +66,28 @@ const main = async () => {
 
   console.log("Connected!");
 
-  const messages = await readFile("messages.json", { encoding: "utf-8" }).then(
-    (t) => JSON.parse(t) as string[]
-  );
-
-  const markovData = new MarkovData(messages);
   const filter = new BadWords({ placeHolder: "\\*" });
 
   client.on(Events.InteractionCreate, async (i) => {
     if (!i.isChatInputCommand()) return;
-    if (i.commandName === "ryanism") {
+
+    if (i.commandName === "generate") {
+      const user = i.options.getUser("user", true);
+
+      let messages;
+      try {
+        messages = await readMessages(user.id);
+      } catch {
+        await i.reply({
+          content: `<@${user.id}> does not have any data!`,
+          allowedMentions: { parse: [] },
+        });
+
+        return;
+      }
+
+      const markovData = new MarkovData(messages);
+
       let message = "";
       while (!message) {
         message = filter.clean(Markov.generate({ data: markovData }));
@@ -115,6 +134,10 @@ const main = async () => {
           }
         });
     }
+  });
+
+  client.on(Events.Error, (e) => {
+    console.error(e);
   });
 };
 

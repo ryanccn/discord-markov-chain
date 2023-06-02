@@ -8,7 +8,13 @@ import {
   GatewayIntentBits,
   Message,
 } from "discord.js";
-import { readFile, writeFile } from "fs/promises";
+
+import {
+  readMessages,
+  readProgress,
+  updateProgress,
+  writeMessages,
+} from "./lib";
 
 const client = new Client({
   intents: [
@@ -20,7 +26,7 @@ const client = new Client({
   ],
 });
 
-// export type MessagesData = { id: string; content: string }[];
+const AUTHOR_ID = process.env.DISCORD_AUTHOR_ID!;
 
 const main = async () => {
   await client.login(process.env.DISCORD_TOKEN!);
@@ -35,7 +41,7 @@ const main = async () => {
   if (channel?.type !== ChannelType.GuildText)
     throw new Error("Couldn't find acceptable channel");
 
-  await channel.send("Started crawling");
+  console.log("Started crawling");
 
   const messages = new Set<string>();
   let lastMessageId: string | null = null;
@@ -46,9 +52,7 @@ const main = async () => {
   });
 
   try {
-    const fsMessages = (await readFile("messages.json", {
-      encoding: "utf-8",
-    }).then((t) => JSON.parse(t))) as string[];
+    const fsMessages = await readMessages(AUTHOR_ID);
 
     fsMessages.forEach((m) => {
       messages.add(m);
@@ -58,9 +62,7 @@ const main = async () => {
   }
 
   try {
-    const fsProgress = (await readFile("progress.json", {
-      encoding: "utf-8",
-    }).then((t) => JSON.parse(t))) as Record<string, string>;
+    const fsProgress = await readProgress(AUTHOR_ID);
 
     lastMessageId = fsProgress[channel.id] ?? null;
   } catch {
@@ -93,19 +95,10 @@ const main = async () => {
     );
   }
 
-  await channel.send(`Ended crawling, ${messages.size} messages saved`);
+  console.log(`Ended crawling, ${messages.size} messages saved`);
 
-  await writeFile("messages.json", JSON.stringify([...messages]));
-
-  {
-    const oldProgress = await readFile("progress.json", {
-      encoding: "utf-8",
-    }).then((txt) => JSON.parse(txt));
-
-    oldProgress[channel.id] = lastMessageId;
-
-    await writeFile("progress.json", JSON.stringify(oldProgress));
-  }
+  await writeMessages(AUTHOR_ID, [...messages]);
+  await updateProgress(AUTHOR_ID, channel.id, lastMessageId);
 
   client.destroy();
 };
