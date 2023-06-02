@@ -102,6 +102,8 @@ const main = async () => {
           if (componentInteraction.customId === "delete") {
             await reply.delete();
           } else if (componentInteraction.customId === "regenerate") {
+            await i.deferReply();
+
             let newMessage = "";
             while (!newMessage) {
               newMessage = filter.clean(Markov.generate({ data: markovData }));
@@ -109,6 +111,7 @@ const main = async () => {
 
             console.log(`> ${newMessage}`);
             await reply.edit({ content: newMessage });
+            await i.editReply("Regenerated response!");
           }
         });
     }
