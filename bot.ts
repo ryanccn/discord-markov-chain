@@ -102,7 +102,7 @@ const main = async () => {
           if (componentInteraction.customId === "delete") {
             await reply.delete();
           } else if (componentInteraction.customId === "regenerate") {
-            await componentInteraction.deferReply();
+            await componentInteraction.deferReply({ ephemeral: true });
 
             let newMessage = "";
             while (!newMessage) {
