@@ -32,6 +32,15 @@ const client = new Client({
 const syncCommands = async () => {
   const commands = [
     new SlashCommandBuilder()
+      .setName("size")
+      .setDescription("Find the size of the data for a user")
+      .addUserOption((option) =>
+        option
+          .setName("user")
+          .setDescription("The user to simulate")
+          .setRequired(true)
+      ),
+    new SlashCommandBuilder()
       .setName("generate")
       .setDescription("Generate a message from the all-powerful Markov chain")
       .addUserOption((option) =>
@@ -133,6 +142,23 @@ const main = async () => {
             await componentInteraction.editReply("Regenerated response!");
           }
         });
+    } else if (i.commandName === "size") {
+      await i.deferReply();
+      const user = i.options.getUser("user", true);
+
+      let messages: string[];
+      try {
+        messages = await readMessages(user.id);
+      } catch {
+        await i.editReply({
+          content: `<@${user.id}> does not have any data!`,
+          allowedMentions: { parse: [] },
+        });
+
+        return;
+      }
+
+      await i.editReply(`${messages.length} messages`);
     }
   });
 
